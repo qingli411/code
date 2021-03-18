@@ -40,7 +40,7 @@ module field_manager
    integer, parameter, public :: output_level_debug    = 32
 
    real(rk),parameter :: default_fill_value = -huge(_ONE_)
-   real(rk),parameter :: default_minimum = default_fill_value + spacing(default_fill_value)
+   real(rk),parameter :: default_minimum = default_fill_value * 0.9999999_rk
    real(rk),parameter :: default_maximum = huge(_ONE_)
 
    type type_dimension
