@@ -43,9 +43,11 @@
 ! !PUBLIC DATA MEMBERS:
 !
 !  'observed' salinity profile
+   integer, public :: initial_salinity_type
    type (type_profile_input), public, target :: sprof_input
 
 !  'observed' temperature profile
+   integer, public :: initial_temperature_type
    type (type_profile_input), public, target :: tprof_input
 
 !  'observed' oxygen profile
@@ -561,6 +563,8 @@
 
    call settings_store%get(tprof_input, 'temperature', 'temperature profile used for initialization and optionally relaxation', 'Celsius', &
                    extra_options=(/option(ANALYTICAL_OFFSET + TWO_LAYERS, 'two layers with linear gradient in between', 'two_layer'), option(ANALYTICAL_OFFSET + CONST_NN, 'from salinity and buoyancy frequency', 'buoyancy')/), default=0._rk, method_off=NOTHING, method_constant=ANALYTICAL_OFFSET + CONST_PROF, pchild=branch)
+   call branch%get(initial_temperature_type, 'type', 'temperature measure', &
+                   options=(/option(1, 'In-situ','in-situ'), option(2, 'Potential','potential'), option(3, 'Conservative','conservative')/), default=1)
    twig => branch%get_typed_child('two_layer')
    call twig%get(z_t1, 'z_s', 'depth where upper layer ends', 'm', &
                    minimum=0._rk,default=0._rk)
@@ -586,6 +590,8 @@
 
    call settings_store%get(sprof_input, 'salinity', 'salinity profile used for initialization and optionally relaxation', 'psu', minimum=0._rk, &
                    extra_options=(/option(ANALYTICAL_OFFSET + TWO_LAYERS, 'two layers with linear gradient in between', 'two_layer'), option(ANALYTICAL_OFFSET + CONST_NN, 'from temperature and buoyancy frequency', 'buoyancy')/), default=0._rk, method_off=NOTHING, method_constant=ANALYTICAL_OFFSET + CONST_PROF, pchild=branch)
+   call branch%get(initial_salinity_type, 'type', 'salinity measure', &
+                   options=(/option(1, 'practical','practical'), option(2, 'Absolute','absolute')/), default=1)
    twig => branch%get_typed_child('two_layer')
    call twig%get(z_s1, 'z_s', 'depth where upper layer ends', 'm', &
                    minimum=0._rk,default=0._rk)
@@ -736,7 +742,7 @@
 ! !IROUTINE: Initialise the observation module
 !
 ! !INTERFACE:
-   subroutine post_init_observations(depth,nlev,z,h,gravity,rho_0)
+   subroutine post_init_observations(depth,nlev,z,zi,h,gravity)
 !
 ! !DESCRIPTION:
 !  The {\tt init\_observations()} subroutine basically reads the {\tt obs.nml}
@@ -753,8 +759,8 @@
 ! !INPUT PARAMETERS:
    REALTYPE, intent(in)                :: depth
    integer, intent(in)                 :: nlev
-   REALTYPE, intent(in)                :: z(0:nlev),h(0:nlev)
-   REALTYPE, intent(in)                :: gravity,rho_0
+   REALTYPE, intent(in)                :: z(0:nlev),zi(0:nlev),h(0:nlev)
+   REALTYPE, intent(in)                :: gravity
 !
 !
 ! !REVISION HISTORY:
@@ -824,6 +830,8 @@
 !  The salinity profile
    call register_input(sprof_input)
    select case (sprof_input%method)
+      case (ANALYTICAL_OFFSET + CONST_PROF)
+          sprof_input%data=sprof_input%constant_value
       case (ANALYTICAL_OFFSET + TWO_LAYERS)
          call analytical_profile(nlev,z,z_s1,s_1,z_s2,s_2,sprof_input%data)
       case (ANALYTICAL_OFFSET + CONST_NN)
@@ -839,12 +847,14 @@
             stop 'init_observations'
          endif
 
-         call const_NNS(nlev,z,s_1,t_1,s_obs_NN,gravity,rho_0,sprof_input%data)
+         call const_NNS(nlev,z,z,s_1,t_1,s_obs_NN,gravity,sprof_input%data)
    end select
 
 !  The temperature profile
    call register_input(tprof_input)
    select case (tprof_input%method)
+      case (ANALYTICAL_OFFSET + CONST_PROF)
+          tprof_input%data=tprof_input%constant_value
       case (ANALYTICAL_OFFSET + TWO_LAYERS)
          call analytical_profile(nlev,z,z_t1,t_1,z_t2,t_2,tprof_input%data)
       case (ANALYTICAL_OFFSET + CONST_NN)
@@ -861,7 +871,7 @@
             stop 'init_observations'
          endif
 
-         call const_NNT(nlev,z,t_1,s_1,t_obs_NN,gravity,rho_0,tprof_input%data)
+         call const_NNT(nlev,z,z,t_1,s_1,t_obs_NN,gravity,tprof_input%data)
    end select
 
 !  The external pressure

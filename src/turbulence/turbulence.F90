@@ -359,7 +359,7 @@
                             kb_min,epsb_min
 
    namelist /generic/       compute_param,gen_m,gen_n,gen_p,   &
-                            cpsi1,cpsi2,cpsi3minus,cpsi3plus,  &
+                            cpsi1,cpsi2,cpsi3minus,cpsi3plus,cpsi4, &
                             sig_kpsi,sig_psi,                  &
                             gen_d,gen_alpha,gen_l
 
@@ -447,7 +447,7 @@
    cpsi2=1.92
    cpsi3minus=0.0
    cpsi3plus=1.0
-   cpsi4=0   
+   cpsi4=_ZERO_
    sig_kpsi=1.0
    sig_psi=1.3
    gen_d=-1.2
@@ -3978,7 +3978,7 @@
    LEVEL2 'keps namelist',  ce1,ce2,ce3minus,ce3plus,ce4,      &
                             sig_k,sig_e,sig_peps
 
-   LEVEL2 'my namelist',    e1,e2,e3, e6, sq,sl,my_length
+   LEVEL2 'my namelist',    e1,e2,e3, e6, sq,sl,my_length,new_constr
 
    LEVEL2 'scnd namelist',  scnd_method,kb_method,epsb_method, &
                             scnd_coeff,                        &
