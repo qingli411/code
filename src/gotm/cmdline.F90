@@ -1,29 +1,16 @@
-#include<cppdefs.h>
+#include"cppdefs.h"
 !-----------------------------------------------------------------------
 !BOP
 !
-! !ROUTINE: GOTM --- the main program  \label{sec:main}
+! !ROUTINE: Command line parsing
 !
 ! !INTERFACE:
-   program main
+   module cmdline
 !
 ! !DESCRIPTION:
-! This is the main program of GOTM. However, because GOTM has been programmed
-! in a modular way, this routine is very short and merely calls internal
-! routines of other modules. Its main purpose is to update the time and to
-! call the internal routines {\tt init\_gotm()}, {\tt time\_loop()}, and
-! {\tt clean\_up()}, which are defined in the module {\tt gotm} as discussed in
-! \sect{sec:gotm}.
 !
-! !USES:
-   use cmdline
-   use time
    use gotm
-#ifdef _FABM_
-   use fabm, only: fabm_finalize_library
-   use fabm_driver, only: driver
-#endif
-!
+
    IMPLICIT NONE
 !
 ! !REVISION HISTORY:
@@ -31,76 +18,12 @@
 !
 !EOP
 !
-! !LOCAL VARIABLES:
 
-   character(LEN=8)          :: systemdate
-   character(LEN=10)         :: systemtime
-   real                      :: t1=-1,t2=-1
-!
-!-----------------------------------------------------------------------
-!BOC
-   call parse_cmdline('gotm')
+   public parse_cmdline
 
-!  monitor CPU time and report system time and date
-#ifdef FORTRAN95
-   call CPU_Time(t1)
+   private
 
-   call Date_And_Time(DATE=systemdate,TIME=systemtime)
-
-   STDERR LINE
-   STDERR 'GOTM started on ', systemdate(1:4), '/', &
-                              systemdate(5:6), '/', &
-                              systemdate(7:8),      &
-                      ' at ', systemtime(1:2), ':', &
-                              systemtime(3:4), ':', &
-                              systemtime(5:6)
-   STDERR LINE
-#else
-   STDERR LINE
-   STDERR 'GOTM'
-   STDERR LINE
-#endif
-
-!  run the model
-   call initialize_gotm()
-   call integrate_gotm()
-   call finalize_gotm()
-
-!  report system date and time at end of run
-#ifdef FORTRAN95
-   call Date_And_Time(DATE=systemdate,TIME=systemtime)
-
-   STDERR LINE
-   STDERR 'GOTM finished on ', systemdate(1:4), '/', &
-                               systemdate(5:6), '/', &
-                               systemdate(7:8),      &
-                       ' at ', systemtime(1:2), ':', &
-                               systemtime(3:4), ':', &
-                               systemtime(5:6)
-   STDERR LINE
-#else
-   STDERR LINE
-   STDERR 'GOTM'
-   STDERR LINE
-#endif
-
-!  report CPU time used for run
-#ifdef FORTRAN95
-   call CPU_Time(t2)
-
-   STDERR 'CPU time:                    ',t2-t1,' seconds'
-   STDERR 'Simulated time/CPU time:     ',simtime/(t2-t1)
-#endif
-
-   call print_version()
-
-#ifdef _FABM_
-   ! Final FABM clean-up that can happen only after print_version
-   call fabm_finalize_library()
-   if (associated(driver)) deallocate(driver)
-#endif
-
-   contains
+contains
 
 !EOC
 !-----------------------------------------------------------------------
@@ -109,7 +32,8 @@
 ! !IROUTINE: Parse the command line
 !
 ! !INTERFACE:
-   subroutine cmdline
+   subroutine parse_cmdline(exe)
+      character(len=*), intent(in) :: exe
 !
 ! !DESCRIPTION:
 !
@@ -129,7 +53,7 @@
          call print_version()
          stop
       case ('-h', '--help')
-         call print_help()
+         call print_help(exe)
          stop
       case ('--read_nml')
          read_nml = .true.
@@ -192,10 +116,11 @@
       i = i+1
    end do
 
-   end subroutine  cmdline
+   end subroutine parse_cmdline
 
-   subroutine print_help()
-      print '(a)', 'Usage: gotm [OPTIONS]'
+   subroutine print_help(exe)
+      character(len=*), intent(in) :: exe
+      print '(a)', 'Usage: '//exe//' [OPTIONS]'
       print '(a)', ''
       print '(a)', 'Options:'
       print '(a)', ''
@@ -212,7 +137,7 @@
       print '(a)', ''
    end subroutine print_help
 
-end program
+end module
 
 !-----------------------------------------------------------------------
 ! Copyright by the GOTM-team under the GNU Public License - www.gnu.org

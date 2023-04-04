@@ -140,6 +140,8 @@
    integer, public             :: write_yaml_detail = display_normal
    logical, public             :: list_fields = .false.
    logical, public             :: ignore_unknown_config = .false.
+   logical, public             :: generate_restart_file = .false.
+   logical, public             :: force_restart_offline = .false.
 
    type,extends(type_output_manager_host) :: type_gotm_host
    contains
@@ -274,6 +276,7 @@
                    default='2017-01-01 00:00:00')
    call branch%get(stop, 'stop', 'stop date and time', units='yyyy-mm-dd HH:MM:SS', &
                    default='2018-01-01 00:00:00')
+   if (generate_restart_file) stop = start
    call branch%get(dt, 'dt', 'time step for integration', 's', &
                    minimum=0.e-10_rk, default=3600._rk)
    call branch%get(cnpar, 'cnpar', '"implicitness" of diffusion scheme', '1', &
@@ -326,6 +329,7 @@
    call branch%get(restart_offline, 'load', &
                    'initialize simulation with state stored in restart.nc', &
                    default=.false.)
+   if (force_restart_offline) restart_offline = .true.
    call branch%get(restart_allow_missing_variable, 'allow_missing_variable', &
                    'warn but not abort if a variable is missing from restart file', &
                    default=.false., display=display_advanced)
@@ -536,7 +540,7 @@
 !  Call do_input to make sure observed profiles are up-to-date.
    call do_input(julianday,secondsofday,nlev,z)
 !KB need some check to find out if this should be done:  zeta = zeta_input%value
-   
+
 
    ! Update the grid based on true initial zeta (possibly read from file by do_input).
    call updategrid(nlev,dt,zeta)
