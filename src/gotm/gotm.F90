@@ -869,7 +869,7 @@
             La = La_SLP_RWH16
          end select
          call do_cvmix(nlev,depth,h,rho,u,v,NN,NNT,NNS,SS,              &
-                       u_taus,tFlux,btFlux,sFlux,bsFlux,                &
+                       u_taus,u_taub,tFlux,btFlux,sFlux,bsFlux,         &
                        tRad,bRad,cori,efactor,La)
 #endif
 
