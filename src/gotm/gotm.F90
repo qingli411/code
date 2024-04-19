@@ -82,7 +82,7 @@
 
 #ifdef _CVMIX_
    use gotm_cvmix,  only: init_cvmix, post_init_cvmix, do_cvmix, clean_cvmix
-   use gotm_cvmix,  only: zsbl, kpp_langmuir_method
+   use gotm_cvmix,  only: zsbl, sbl_langmuir_method
 #endif
 
 #ifdef SEAGRASS
@@ -854,7 +854,7 @@
 !        use KPP via CVMix
          call convert_fluxes(nlev,gravity,cp,rho_0,heat_input%value,precip_input%value+evap,    &
                              rad,T,S,tFlux,sFlux,btFlux,bsFlux,tRad,bRad)
-         select case(kpp_langmuir_method)
+         select case(sbl_langmuir_method)
          case (0)
             efactor = _ONE_
             La = _ONE_/SMALL
