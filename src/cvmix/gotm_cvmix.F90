@@ -107,6 +107,9 @@
 !  enhance diffusivity at OBL
    logical                               ::    sbl_use_enhanced_diff
 
+!  modification of MOST by Stokes drift following Large et al., 2019a,b,2021
+   logical                               ::    kpp_use_stokes_most
+
 !  method to parameterize the effects of Langmuir turbulence
 !  options are
 !  (0)   no Langmuir turbulence parameterization
@@ -263,7 +266,9 @@
       'enhance diffusivity at OBL', default=.true.)
    call twig%get(sbl_use_noDGat1, 'use_noDGat1',                       &
       'zero gradient of the shape function at OBL', default=.true.)
-   call twig%get(sbl_match_technique, 'match_technique',               &
+   call leaf%get(sbl_use_stokes_most, 'use_Stokes_MOST',               &
+      'modified MOST due to Stokes drift', default=.false.)
+   call leaf%get(sbl_match_technique, 'match_technique',               &
       'matching technique of shape functions with the ocean interior', &
       default=CVMIX_MATCH_SIMPLE, options=(/                           &
       option(CVMIX_MATCH_SIMPLE, 'simple shapes', 'simple'),           &
@@ -633,6 +638,12 @@
       end select
       LEVEL4 'Interpolation type for diff and visc: ', trim(sbl_OBL_interp_method)
 
+      if (sbl_use_stokes_most) then
+         LEVEL4 'Use Stokes-modified MOST               - active -'
+      else
+         LEVEL4 'Use Stokes-modified MOST           - not active -'
+      endif
+
       select case (sbl_langmuir_method)
       case (CVMIX_LT_NOLANGMUIR)
          Langmuir_mixing_method = 'NONE'
@@ -784,6 +795,7 @@
                           lEkman=sbl_check_Ekman_length,                      &
                           lMonOb=sbl_check_MonOb_length,                      &
                           lnoDGat1=sbl_use_noDGat1,                           &
+                          lStokesMOST=sbl_use_stokes_most,                    &
                           lenhanced_diff=sbl_use_enhanced_diff,               &
                           surf_layer_ext=sbl_surface_layer_extent,            &
                           langmuir_mixing_str=trim(langmuir_mixing_method),   &
