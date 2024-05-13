@@ -102,6 +102,9 @@
 !  enhance diffusivity at OBL
    logical                               ::    kpp_use_enhanced_diff
 
+!  modification of MOST by Stokes drift following Large et al., 2019a,b,2021
+   logical                               ::    kpp_use_stokes_most
+
 !  method to parameterize the effects of Langmuir turbulence
 !  options are
 !  (0)   no Langmuir turbulence parameterization
@@ -242,6 +245,7 @@
                         kpp_check_MonOb_length,      &
                         kpp_use_enhanced_diff,       &
                         kpp_use_noDGat1,             &
+                        kpp_use_stokes_most,         &
                         kpp_match_technique,         &
                         kpp_bulk_Ri_interp_type,     &
                         kpp_OBL_interp_type,         &
@@ -282,6 +286,7 @@
    kpp_check_MonOb_length = .false.
    kpp_use_enhanced_diff = .true.
    kpp_use_noDGat1 = .true.
+   kpp_use_stokes_most = .false.
    kpp_match_technique = 1
    kpp_bulk_Ri_interp_type = 2
    kpp_OBL_interp_type = 4
@@ -391,6 +396,8 @@
       'enhance diffusivity at OBL', default=.true.)
    call leaf%get(kpp_use_noDGat1, 'use_noDGat1',                       &
       'zero gradient of the shape function at OBL', default=.true.)
+   call leaf%get(kpp_use_stokes_most, 'use_Stokes_MOST',               &
+      'modified MOST due to Stokes drift', default=.false.)
    call leaf%get(kpp_match_technique, 'match_technique',               &
       'matching technique of shape functions with the ocean interior', &
       default=CVMIX_MATCH_SIMPLE, options=(/                           &
@@ -721,6 +728,12 @@
       end select
       LEVEL4 'Interpolation type for diff and visc: ', trim(OBL_interp_method)
 
+      if (kpp_use_stokes_most) then
+         LEVEL4 'Use Stokes-modified MOST               - active -'
+      else
+         LEVEL4 'Use Stokes-modified MOST           - not active -'
+      endif
+
       select case (kpp_langmuir_method)
       case (CVMIX_LT_NOLANGMUIR)
          Langmuir_mixing_method = 'NONE'
@@ -807,6 +820,7 @@
                           lEkman=kpp_check_Ekman_length,                      &
                           lMonOb=kpp_check_MonOb_length,                      &
                           lnoDGat1=kpp_use_noDGat1,                           &
+                          lStokesMOST=kpp_use_stokes_most,                    &
                           lenhanced_diff=kpp_use_enhanced_diff,               &
                           surf_layer_ext=kpp_surface_layer_extent,            &
                           langmuir_mixing_str=trim(langmuir_mixing_method),   &
