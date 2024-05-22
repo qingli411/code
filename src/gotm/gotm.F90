@@ -857,7 +857,7 @@
          if (kpp_use_stokes_most) then
             hbl = zi(nlev) - zsbl
             hsl = kpp_surface_layer_extent * hbl
-            call stokes_most_xi(nlev,z,zi,u,v,usprof%data,vsprof%data,tx,ty,us0%value,vs0%value,u_taus,btFlux+bsFlux+bRad(nlev),hbl,hsl,StokesXi)
+            call stokes_most_xi(nlev,z,zi,u,v,usprof%data,vsprof%data,tx,ty,us0%value,vs0%value,u_taus,btFlux+bsFlux,bRad,hbl,hsl,StokesXi)
             Xi = StokesXi
          else
             Xi = _ONE_

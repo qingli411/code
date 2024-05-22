@@ -466,6 +466,7 @@
    hsl = 0.2*hbl
 
 !  determine which layer contains surface layer
+   ksl = 1
    do k = nlev,1,-1
       if (zi(nlev)-zi(k-1) .ge. hsl) then
          ksl = k
@@ -474,6 +475,7 @@
    end do
 
 !  determine which layer contains boundary layer
+   kbl = 1
    do k = nlev,1,-1
       if (zi(nlev)-zi(k-1) .ge. hbl) then
          kbl = k

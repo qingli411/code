@@ -1501,7 +1501,7 @@
 ! !IROUTINE: Compute the Stokes similarity parameter
 !
 ! !INTERFACE:
-   subroutine stokes_most_xi(nlev,z,zi,u,v,us,vs,tx,ty,us0,vs0,u_taus,bflux,hbl,hsl,StokesXi)
+   subroutine stokes_most_xi(nlev,z,zi,u,v,us,vs,tx,ty,us0,vs0,u_taus,bflux,bRad,hbl,hsl,StokesXi)
 !
 ! !DESCRIPTION:
 !  This routine computes the Stokes similarity parameter following
@@ -1527,6 +1527,8 @@
    REALTYPE, intent(in)                :: u_taus
 !  surface buoyancy fluxes (m^2/s^3)
    REALTYPE, intent(in)                :: bflux
+!  radiative buoyancy flux (m^2/s^3)
+   REALTYPE, intent(in)                :: bRad(0:nlev)
    ! boundary layer depth (m)
    REALTYPE, intent(in)                :: hbl
    ! surface layer depth (m)
@@ -1544,8 +1546,8 @@
 !-----------------------------------------------------------------------
 ! !LOCAL VARIABLES:
    REALTYPE, parameter                 :: CempCGm = 3.5, PBfact = 0.11
-   integer                             :: k, ksl
-   REALTYPE                            :: ustar, stk0
+   integer                             :: k, ksl, kbl
+   REALTYPE                            :: ustar, stk0, bfsfc, bRadSbl
    REALTYPE                            :: PB, PU, PS, Pinc
    REALTYPE                            :: dtop, dbot, delU, delV, delH
    REALTYPE                            :: sigbot, Gbot
@@ -1560,12 +1562,27 @@
 !-----------------------------------------------------------------------
 
 !  determine which layer contains surface layer
+   ksl = 1
    do k = nlev,1,-1
       if (zi(nlev)-zi(k-1) .ge. hsl) then
          ksl = k
          exit
       end if
-   end do
+   enddo
+
+!  determine which layer contains boundary layer
+   kbl = 1
+   do k=nlev,1,-1
+      if (zi(nlev)-zi(k-1) .ge. hbl) then
+         kbl = k
+         exit
+      endif
+   enddo
+
+   bRadSbl = ( bRad(kbl-1)*(hbl+zi(kbl)) +                          &
+               bRad(kbl  )*(-hbl-zi(kbl-1) ) )/ (zi(kbl)-zi(kbl-1))
+
+   bfsfc   = bflux + (bRad(nlev) - bRadSbl)
 
 !  Stokes drift at interfaces
    do k = nlev-1,ksl-1
@@ -1581,7 +1598,7 @@
    stk0 = sqrt(us0**2 + vs0**2)
 
    ! parameterized buoyancy production of TKE
-   PB = PBfact * max(-bflux*hbl, _ZERO_)
+   PB = PBfact * max(-bfsfc*hbl, _ZERO_)
 
    ! compute shear production and Stokes production
    PU = _ZERO_
