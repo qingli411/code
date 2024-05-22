@@ -72,6 +72,9 @@
 !  Angles between wind and waves and between wind and Langmuir cells
    REALTYPE, public          :: theta_WW, theta_WL
 
+!  Stokes similarity parameter (Large et al., 2021)
+   REALTYPE, public          :: StokesXi
+
 ! !DEFINED PARAMETERS:
 
 !  pre-defined parameters
@@ -228,6 +231,7 @@
    theta_WL = _ZERO_
    EFactor_LWF16 = _ONE_
    EFactor_RWH16 = _ONE_
+   StokesXi = _ZERO_
 
    LEVEL2 'done.'
 
