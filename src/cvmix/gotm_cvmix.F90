@@ -35,7 +35,7 @@
    private
 
 ! !PUBLIC MEMBER FUNCTIONS:
-   public init_cvmix, do_cvmix, clean_cvmix, post_init_cvmix
+   public init_cvmix, do_cvmix, clean_cvmix, post_init_cvmix, stokes_most_xi
 !
    interface init_cvmix
       module procedure init_cvmix_nml
@@ -103,7 +103,7 @@
    logical                               ::    kpp_use_enhanced_diff
 
 !  modification of MOST by Stokes drift following Large et al., 2019a,b,2021
-   logical                               ::    kpp_use_stokes_most
+   logical, public                       ::    kpp_use_stokes_most
 
 !  method to parameterize the effects of Langmuir turbulence
 !  options are
@@ -142,7 +142,7 @@
    integer                               ::    kpp_match_technique
 
 !  surface layer extent
-   REALTYPE                              ::    kpp_surface_layer_extent
+   REALTYPE, public                      ::    kpp_surface_layer_extent
 
 !  critical Richardson number
    REALTYPE                              ::    kpp_Ri_c
@@ -868,7 +868,7 @@
 ! !INTERFACE:
    subroutine do_cvmix(nlev,h0,h,rho,u,v,NN,NNT,NNS,SS,u_taus,         &
                        tFlux,btFlux,sFlux,bsFlux,tRad,bRad,f,          &
-                       EFactor,LaSL)
+                       EFactor,LaSL,StokesXi)
 !
 ! !DESCRIPTION:
 !  Do KPP with CVMix
@@ -927,6 +927,9 @@
 !  for Langmuir enhanced entrainment
    REALTYPE, intent(in)                          :: LaSL
 
+!  Stokes similarity parameter
+   REALTYPE, intent(in)                          :: StokesXi
+
 ! !REVISION HISTORY:
 !  Original author(s): Lars Umlauf
 !   Adapted for CVMix: Qing Li
@@ -981,7 +984,7 @@
    if (use_surface_layer) then
       call surface_layer(nlev,h,rho,u,v,NN,u_taus,                   &
                          tFlux,btFlux,sFlux,bsFlux,tRad,bRad,f,      &
-                         EFactor, LaSL)
+                         EFactor,LaSL,StokesXi)
    endif
 
 !-----------------------------------------------------------------------
@@ -1215,7 +1218,7 @@
 ! !INTERFACE:
    subroutine surface_layer(nlev,h,rho,u,v,NN,u_taus,                  &
                             tFlux,btFlux,sFlux,bsFlux,tRad,bRad,f,     &
-                            EFactor,LaSL)
+                            EFactor,LaSL,StokesXi)
 !
 ! !DESCRIPTION:
 ! In this routine all computations related to turbulence in the surface layer
@@ -1265,6 +1268,8 @@
 !  for Langmuir enhanced entrainment
    REALTYPE, intent(in)                          :: LaSL
 
+!  Stokes similarity parameter
+   REALTYPE, intent(in)                          :: StokesXi
 
 !
 ! !REVISION HISTORY:
@@ -1347,6 +1352,7 @@
       depth = z_w(nlev)-z_r(kp1)
       call cvmix_kpp_compute_turbulent_scales(_ONE_,       &
           depth,Bflux(kp1),u_taus,                         &
+          xi=StokesXi, &
           w_s=ws,w_m=wm)
 
       ! update potential density and velocity components surface
@@ -1450,6 +1456,9 @@
    ! set Langmuir enhancement factor
    CVmix_vars%LangmuirEnhancementFactor = EFactor
 
+   ! set Stokes similarity parameter
+   CVmix_vars%StokesMostXi = StokesXi
+
    ! Note that arrays at the cell interface in CVMix have indices (1:nlev+1)
    ! from the surface to the bottom, whereas those in GOTM have indices (nlev:0)
    CVmix_vars%Mdiff_iface(1:nlev+1) = cvmix_num(nlev:0:-1)
@@ -1484,6 +1493,139 @@
    return
 
  end subroutine surface_layer
+!EOC
+
+!-----------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Compute the Stokes similarity parameter
+!
+! !INTERFACE:
+   subroutine stokes_most_xi(nlev,z,zi,u,v,us,vs,tx,ty,us0,vs0,u_taus,bflux,hbl,hsl,StokesXi)
+!
+! !DESCRIPTION:
+!  This routine computes the Stokes similarity parameter following
+!  Large et al., 2021 (doi:10.1175/JPO-D-20-0308.1)
+!
+! !USES:
+   IMPLICIT NONE
+!
+! !INPUT PARAMETERS:
+   ! number of grid
+   integer, intent(in)                 :: nlev
+   ! depth at the grid center and interface
+   REALTYPE, intent(in)                :: z(0:nlev), zi(0:nlev)
+   ! velocity components at grid centers (m/s)
+   REALTYPE, intent(in)                :: u(0:nlev),v(0:nlev)
+   ! Stokes drift velocity components at grid centers (m/s)
+   REALTYPE, intent(in)                :: us(1:nlev),vs(1:nlev)
+   ! surface wind stress (m^2/s^2)
+   REALTYPE, intent(in)                :: tx, ty
+   ! surface Stokes drift (m/s)
+   REALTYPE, intent(in)                :: us0, vs0
+   ! friction velocity (m/s)
+   REALTYPE, intent(in)                :: u_taus
+!  surface buoyancy fluxes (m^2/s^3)
+   REALTYPE, intent(in)                :: bflux
+   ! boundary layer depth (m)
+   REALTYPE, intent(in)                :: hbl
+   ! surface layer depth (m)
+   REALTYPE, intent(in)                :: hsl
+   ! Stokes drift similarity parameter
+   REALTYPE, intent(out)               :: StokesXi
+
+!
+! !OUTPUT PARAMETERS:
+!
+! !REVISION HISTORY:
+!  Original author(s): Qing Li
+!
+!EOP
+!-----------------------------------------------------------------------
+! !LOCAL VARIABLES:
+   REALTYPE, parameter                 :: CempCGm = 3.5, PBfact = 0.11
+   integer                             :: k, ksl
+   REALTYPE                            :: ustar, stk0
+   REALTYPE                            :: PB, PU, PS, Pinc
+   REALTYPE                            :: dtop, dbot, delU, delV, delH
+   REALTYPE                            :: sigbot, Gbot
+   REALTYPE                            :: tauEtop, tauEbot, tauMag
+   REALTYPE                            :: tauxtop, tauytop, tauxbot, tauybot
+   REALTYPE                            :: tauCG, tauDG
+   REALTYPE                            :: Omega_E2x, cosOmega, sinOmega
+   REALTYPE                            :: us_i(0:nlev), vs_i(0:nlev)
+!
+!-----------------------------------------------------------------------
+!BOC
+!-----------------------------------------------------------------------
+
+!  determine which layer contains surface layer
+   do k = nlev,1,-1
+      if (zi(nlev)-zi(k-1) .ge. hsl) then
+         ksl = k
+         exit
+      end if
+   end do
+
+!  Stokes drift at interfaces
+   do k = nlev-1,ksl-1
+      us_i(k) = 0.5*(us(k)+us(k+1))
+      vs_i(k) = 0.5*(vs(k)+vs(k+1))
+   enddo
+   us_i(nlev) = us0
+   vs_i(nlev) = vs0
+   us_i(0) = us_i(1)
+   vs_i(0) = vs_i(1)
+
+   ustar = max(u_taus, 1e-4)
+   stk0 = sqrt(us0**2 + vs0**2)
+
+   ! parameterized buoyancy production of TKE
+   PB = PBfact * max(-bflux*hbl, _ZERO_)
+
+   ! compute shear production and Stokes production
+   PU = _ZERO_
+   PS = _ZERO_
+   dtop = _ZERO_
+   delU = u(nlev) - u(nlev-1)
+   delV = v(nlev) - v(nlev-1)
+   tauEtop = (tx*delU+ty*delV)/(z(nlev)-z(nlev-1))
+   tauxtop = tx
+   tauytop = ty
+   do k = nlev,ksl,-1
+      delH = min(max(_ZERO_, hsl-dtop), (zi(k)-zi(k-1)))
+      dbot = min(dtop+delH, hsl)
+      sigbot = dbot / hbl
+      Gbot = cvmix_kpp_composite_shape(sigbot)
+      tauMag = ustar * ustar * Gbot / sigbot
+      delU = u(k) - u(k-1)
+      delV = v(k) - v(k-1)
+      Omega_E2x = atan2(delV, delU)
+      cosOmega = cos(Omega_E2x)
+      sinOmega = sin(Omega_E2x)
+      tauCG = CempCGm * Gbot * (tx*cosOmega - ty*sinOmega)
+      !tauDG = sqrt( tauMag**2 - tauCG**2 ) ! G
+      tauDG = tauMag                        ! E
+      tauxbot = tauDG * cosOmega - tauCG * sinOmega
+      tauybot = tauDG * sinOmega + tauCG * cosOmega
+      tauEbot = (tauxbot * delU + tauybot * delV)/(z(k) - z(k-1))
+      ! increment Eulerian shear production
+      Pinc = 0.5 * (tauEbot + tauEtop) * delH
+      PU = PU + max(Pinc, _ZERO_)
+      ! increment Stokes shear production
+      Pinc = tauxtop*us_i(k)-tauxbot*us_i(k-1) + tauytop*vs_i(k)-tauybot*vs_i(k-1)
+      Pinc = Pinc - (tauxtop-tauxbot) * us(k) - (tauytop-tauybot) * vs(k)
+      PS = PS + max(Pinc, _ZERO_)
+      ! bottom becomes next top
+      dtop = dbot
+      tauxtop = tauxbot
+      tauytop = tauybot
+      tauEtop = tauEbot
+   enddo
+
+   StokesXi = PS / max(PU+PS+PB, 1e-12)
+
+   end subroutine stokes_most_xi
 !EOC
 
 !-----------------------------------------------------------------------

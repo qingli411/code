@@ -306,6 +306,7 @@
    call fm%register('EFactor_RWH16', '', 'Enhancement factor for Langmuir mixing (Reichl et al., 2016)', data0d=EFactor_RWH16, category='stokes_drift')
    call fm%register('theta_WW', 'rad', 'Angle between wind and waves', data0d=theta_WW, category='stokes_drift')
    call fm%register('theta_WL', 'rad', 'Angle between wind and Langmiur cells', data0d=theta_WL, category='stokes_drift')
+   call fm%register('StokesXi', '', 'Stokes similarity parameter', data0d=StokesXi, category='stokes_drift')
 #endif
 
    return

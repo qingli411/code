@@ -81,8 +81,8 @@
    use eqstate,     only: init_eqstate
 
 #ifdef _CVMIX_
-   use gotm_cvmix,  only: init_cvmix, post_init_cvmix, do_cvmix, clean_cvmix
-   use gotm_cvmix,  only: zsbl, kpp_langmuir_method
+   use gotm_cvmix,  only: init_cvmix, post_init_cvmix, do_cvmix, clean_cvmix, stokes_most_xi
+   use gotm_cvmix,  only: zsbl, kpp_langmuir_method, kpp_use_stokes_most, kpp_surface_layer_extent
 #endif
 
 #ifdef SEAGRASS
@@ -714,7 +714,9 @@
    REALTYPE                  :: tRad(0:nlev),bRad(0:nlev)
 
    REALTYPE                  :: Qsw, Qflux
-   REALTYPE                  :: La, EFactor
+#ifdef _CVMIX_
+   REALTYPE                  :: La, EFactor, Xi, hbl, hsl
+#endif
 !-----------------------------------------------------------------------
 !BOC
    if (i == 0 .and. .not. restart) then
@@ -851,26 +853,36 @@
 !        update Langmuir number
          call langmuir_number(nlev,zi,Hs_input%value,u_taus,zi(nlev)-zsbl,u10_input%value,v10_input%value)
 
+!        update Stokes similarity parameter
+         if (kpp_use_stokes_most) then
+            hbl = zi(nlev) - zsbl
+            hsl = kpp_surface_layer_extent * hbl
+            call stokes_most_xi(nlev,z,zi,u,v,usprof%data,vsprof%data,tx,ty,us0%value,vs0%value,u_taus,btFlux+bsFlux+bRad(nlev),hbl,hsl,StokesXi)
+            Xi = StokesXi
+         else
+            Xi = _ONE_
+         endif
+
 !        use KPP via CVMix
          call convert_fluxes(nlev,gravity,cp,rho_0,heat_input%value,precip_input%value+evap,    &
                              rad,T,S,tFlux,sFlux,btFlux,bsFlux,tRad,bRad)
          select case(kpp_langmuir_method)
          case (0)
-            efactor = _ONE_
+            EFactor = _ONE_
             La = _ONE_/SMALL
          case (1)
-            efactor = EFactor_LWF16
+            EFactor = EFactor_LWF16
             La = La_SL
          case (2)
-            efactor = EFactor_LWF16
+            EFactor = EFactor_LWF16
             La = La_SL
          case (3)
-            efactor = EFactor_RWH16
+            EFactor = EFactor_RWH16
             La = La_SLP_RWH16
          end select
          call do_cvmix(nlev,depth,h,rho,u,v,NN,NNT,NNS,SS,              &
                        u_taus,tFlux,btFlux,sFlux,bsFlux,                &
-                       tRad,bRad,cori,efactor,La)
+                       tRad,bRad,cori,EFactor,La,Xi)
 #endif
 
       case default

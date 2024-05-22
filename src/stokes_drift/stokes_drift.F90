@@ -72,6 +72,9 @@
 !  Angles between wind and waves and between wind and Langmuir cells
    REALTYPE, public          :: theta_WW, theta_WL
 
+!  Stokes similarity parameter (Large et al., 2021)
+   REALTYPE, public          :: StokesXi
+
 ! !DEFINED PARAMETERS:
 
 !  pre-defined parameters
@@ -328,6 +331,7 @@
    theta_WL = _ZERO_
    EFactor_LWF16 = _ONE_
    EFactor_RWH16 = _ONE_
+   StokesXi = _ZERO_
 
    LEVEL2 'done.'
 
@@ -447,7 +451,7 @@
 !-----------------------------------------------------------------------
 ! !LOCAL VARIABLES:
    REALTYPE, parameter                 :: kappa = 0.4
-   integer                             :: k, kk, ksl, kbl
+   integer                             :: k, ksl, kbl
    REALTYPE                            :: ussl, vssl, us_srf
    REALTYPE                            :: hsl, dz, z0
 !
@@ -462,17 +466,17 @@
    hsl = 0.2*hbl
 
 !  determine which layer contains surface layer
-   do kk = nlev,k,-1
-      if (zi(nlev)-zi(kk-1) .ge. hsl) then
-         ksl = kk
+   do k = nlev,1,-1
+      if (zi(nlev)-zi(k-1) .ge. hsl) then
+         ksl = k
          exit
       end if
    end do
 
 !  determine which layer contains boundary layer
-   do kk = nlev,k,-1
-      if (zi(nlev)-zi(kk-1) .ge. hbl) then
-         kbl = kk
+   do k = nlev,1,-1
+      if (zi(nlev)-zi(k-1) .ge. hbl) then
+         kbl = k
          exit
       end if
    end do
@@ -481,10 +485,10 @@
    if (ksl < nlev) then
       ussl =   usprof%data(ksl)*(hsl+zi(ksl))
       vssl =   vsprof%data(ksl)*(hsl+zi(ksl))
-      do kk = nlev,ksl+1,-1
-         dz = zi(kk)-zi(kk-1)
-         ussl = ussl + usprof%data(kk)*dz
-         vssl = vssl + vsprof%data(kk)*dz
+      do k = nlev,ksl+1,-1
+         dz = zi(k)-zi(k-1)
+         ussl = ussl + usprof%data(k)*dz
+         vssl = vssl + vsprof%data(k)*dz
       end do
       ussl = ussl/hsl
       vssl = vssl/hsl
