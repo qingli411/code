@@ -1708,9 +1708,9 @@
    call cvmix_coeffs_kpp(CVmix_vars_tmp, CVmix_kpp_params_tmp)
 
    do k=0,kbbl
-      cvmix_num(k) = CVmix_vars_tmp%Mdiff_iface(k+1)
-      cvmix_nuh(k) = CVmix_vars_tmp%Tdiff_iface(k+1)
-      cvmix_nus(k) = CVmix_vars_tmp%Sdiff_iface(k+1)
+      cvmix_num(k) = max(cvmix_num(k), CVmix_vars_tmp%Mdiff_iface(k+1))
+      cvmix_nuh(k) = max(cvmix_nuh(k), CVmix_vars_tmp%Tdiff_iface(k+1))
+      cvmix_nus(k) = max(cvmix_nus(k), CVmix_vars_tmp%Sdiff_iface(k+1))
    enddo
 
    return
