@@ -72,6 +72,9 @@
 !  Angles between wind and waves and between wind and Langmuir cells
    REALTYPE, public          :: theta_WW, theta_WL
 
+!  Flag for Coriolis Stokes force
+   logical, public           :: coriolis_stokes
+
 ! !DEFINED PARAMETERS:
 
 !  pre-defined parameters
@@ -124,6 +127,7 @@
    LEVEL1 'init_stokes_drift_yaml'
 
    branch => settings_store%get_typed_child('waves/stokes_drift', 'observed/prescribed Stokes drift', display=display_advanced)
+   call branch%get(coriolis_stokes, 'coriolis_stokes_force', 'apply Coriolis Stokes force', default=.true.)
    call branch%get(us0, 'us0', 'surface Stokes drift in West-East direction', 'm/s',                &
                    method_off=NOTHING, method_constant=CONSTANT, method_file=FROMFILE, default=0._rk)
    call branch%get(vs0, 'vs0', 'surface Stokes drift in South-North direction', 'm/s',              &
@@ -218,6 +222,10 @@
          LEVEL1 'A non-valid us_prof_method has been given ', usprof%method
          stop 'init_stokes_drift()'
    end select
+
+   if (.not. coriolis_stokes) then
+      LEVEL2 'Coriolis Stokes force off. Lagrangian velocity is assumed.'
+   end if
 
    ! Langmuir number
    La_Turb = _ONE_/SMALL

@@ -14,7 +14,7 @@
 !
 ! !USES:
    USE meanflow, only: u,v,cori
-   USE stokes_drift, only: usprof, vsprof
+   USE stokes_drift, only: usprof, vsprof, coriolis_stokes
 !
    IMPLICIT NONE
 !
@@ -39,20 +39,28 @@
    cosomega=cos(omega)
    sinomega=sin(omega)
 
-   do i=1,nlev
-!     KK-TODO: move calculation of Lagrangian velocities to a more
-!              central place.
-      ul = u(i) + usprof%data(i)
-      vl = v(i) + vsprof%data(i)
+   if (coriolis_stokes) then
+      do i=1,nlev
+   !     KK-TODO: move calculation of Lagrangian velocities to a more
+   !              central place.
+         ul = u(i) + usprof%data(i)
+         vl = v(i) + vsprof%data(i)
 
-      ua = ul
-      ul =  ul*cosomega + vl*sinomega
-      vl = -ua*sinomega + vl*cosomega
+         ua = ul
+         ul =  ul*cosomega + vl*sinomega
+         vl = -ua*sinomega + vl*cosomega
 
-!     KK-TODO: In GETM we distinguish between old and new Stokes drift.
-      u(i) = ul - usprof%data(i)
-      v(i) = vl - vsprof%data(i)
-   end do
+   !     KK-TODO: In GETM we distinguish between old and new Stokes drift.
+         u(i) = ul - usprof%data(i)
+         v(i) = vl - vsprof%data(i)
+      end do
+   else
+      do i=1,nlev
+         ua = u(i)
+         u(i) = u(i)*cosomega + v(i)*sinomega
+         v(i) =  -ua*sinomega + v(i)*cosomega
+      end do
+   end if
 
    return
    end subroutine coriolis
