@@ -108,11 +108,14 @@
       end if
 
 !     compute the factor r (version 1, with log-law)
-      rr_b=kappa/(log((z0b+h(1)/2)/z0b))
+      ! rr_b=kappa/(log((z0b+h(1)/2)/z0b))
 
 !     compute the factor r (version 2, with meanvalue log-law)
 !     frac=(z0b+h(1))/z0b
 !     rr=kappa/((z0b+h(1))/h(1)*log(frac)-1.)
+
+!     compute the factor r (version 3)
+      rr_b = kappa/(log((h(1)/2)/z0b))
 
 !     compute the friction velocity at the bottom
       u_taub = rr_b*sqrt( u(1)*u(1) + v(1)*v(1) )
@@ -126,14 +129,14 @@
 
 !  add bottom friction as source term for the momentum equation
    drag(1) = drag(1) +  rr_b*rr_b
-    
+
 !  add for surface plume scenario surface friction as source term for the momentum equation
    if (plume_type .eq. 1) drag(nlev) = drag(nlev) +  rr_s*rr_s
 
 !  be careful: tx and ty are the surface shear-stresses
 !  already divided by rho!
    if (plume_type == 1) then
-      u_taus=rr_s*sqrt( u(nlev)*u(nlev) + v(nlev)*v(nlev) )     
+      u_taus=rr_s*sqrt( u(nlev)*u(nlev) + v(nlev)*v(nlev) )
    else
       u_taus=(tx**2+ty**2)**(1./4.)
    endif
