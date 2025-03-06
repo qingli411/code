@@ -108,7 +108,7 @@
    logical                               ::    sbl_use_enhanced_diff
 
 !  modification of MOST by Stokes drift following Large et al., 2019a,b,2021
-   logical, public                       ::    kpp_use_stokes_most
+   logical, public                       ::    sbl_use_stokes_most
 
 !  method to parameterize the effects of Langmuir turbulence
 !  options are
@@ -150,7 +150,7 @@
                                                bbl_match_technique
 
 !  surface layer extent
-   REALTYPE                              ::    sbl_surface_layer_extent,&
+   REALTYPE, public                      ::    sbl_surface_layer_extent,&
                                                bbl_surface_layer_extent
 
 !  critical Richardson number
@@ -266,9 +266,9 @@
       'enhance diffusivity at OBL', default=.true.)
    call twig%get(sbl_use_noDGat1, 'use_noDGat1',                       &
       'zero gradient of the shape function at OBL', default=.true.)
-   call leaf%get(sbl_use_stokes_most, 'use_Stokes_MOST',               &
+   call twig%get(sbl_use_stokes_most, 'use_Stokes_MOST',               &
       'modified MOST due to Stokes drift', default=.false.)
-   call leaf%get(sbl_match_technique, 'match_technique',               &
+   call twig%get(sbl_match_technique, 'match_technique',               &
       'matching technique of shape functions with the ocean interior', &
       default=CVMIX_MATCH_SIMPLE, options=(/                           &
       option(CVMIX_MATCH_SIMPLE, 'simple shapes', 'simple'),           &
