@@ -1794,7 +1794,7 @@
    REALTYPE                            :: ustar, stk0, bfsfc, bRadSbl
    REALTYPE                            :: PB, PU, PS, Pinc
    REALTYPE                            :: dtop, dbot, delU, delV, delH
-   REALTYPE                            :: sigbot, Gbot
+   REALTYPE                            :: sigbot, Gbot, dGbot
    REALTYPE                            :: tauEtop, tauEbot, tauMag
    REALTYPE                            :: tauxtop, tauytop, tauxbot, tauybot
    REALTYPE                            :: tauCG, tauDG
@@ -1857,7 +1857,7 @@
       delH = min(max(_ZERO_, hsl-dtop), (zi(k)-zi(k-1)))
       dbot = min(dtop+delH, hsl)
       sigbot = dbot / hbl
-      Gbot = cvmix_kpp_composite_shape(sigbot)
+      call cvmix_kpp_composite_Gshape(sigbot, _ZERO_, Gbot, dGbot)
       tauMag = ustar * ustar * Gbot / sigbot
       delU = u(k) - u(k-1)
       delV = v(k) - v(k-1)
