@@ -156,6 +156,9 @@
 !  critical Richardson number
    REALTYPE                              ::    sbl_Ri_c, bbl_Ri_c
 
+!  tunable parameter for convection entrainment in StokesMOST
+   REALTYPE                              ::    sbl_CVt2
+
 !  background diffusivity and viscosity
    REALTYPE                              ::    background_diffusivity, &
                                                background_viscosity
@@ -258,6 +261,9 @@
       minimum=0._rk, maximum=1._rk, default=0.1_rk)
    call twig%get(sbl_Ri_c, 'Ri_c', 'critical Richardson number', '-',  &
       minimum=0._rk, default=0.3_rk)
+   call twig%get(sbl_CVt2, 'CVt2',                                     &
+      'convection entrainment in StokesMOST', '-',                     &
+      minimum=0._rk, default=1.6_rk)
    call twig%get(sbl_check_Ekman_length, 'check_Ekman_length',         &
       'limit the OBL by the Ekman depth', default=.false.)
    call twig%get(sbl_check_MonOb_length, 'check_MonOb_length',         &
@@ -640,6 +646,7 @@
 
       if (sbl_use_stokes_most) then
          LEVEL4 'Use Stokes-modified MOST               - active -'
+         LEVEL4 'CVt2: ', sbl_CVt2
       else
          LEVEL4 'Use Stokes-modified MOST           - not active -'
       endif
@@ -798,6 +805,7 @@
                           lStokesMOST=sbl_use_stokes_most,                    &
                           lenhanced_diff=sbl_use_enhanced_diff,               &
                           surf_layer_ext=sbl_surface_layer_extent,            &
+                          CVt2=sbl_CVt2,                                      &
                           langmuir_mixing_str=trim(langmuir_mixing_method),   &
                           langmuir_entrainment_str=                           &
                                     trim(langmuir_entrainment_method))
